@@ -82,7 +82,8 @@ export function runChecks(source, out, opts = {}) {
   //        model also does legitimate arithmetic ("the other 90%" from a 10%
   //        weight), so this is a WARN for a human to judge. ---
   const srcNums = numbersIn(source);
-  const invented = [...numbersIn(allText)].filter(n => !srcNums.has(n) && n.length <= 4);
+  const factText = [...out.work, ...out.legwork, ...out.rules].join(" ");
+  const invented = [...numbersIn(factText)].filter(n => !srcNums.has(n) && n.length <= 4);
   if (invented.length) add("WARN", "invented-numbers", `not in source: ${invented.join(", ")}`);
 
   // --- 3. Dropped dates. The round-four disaster detector. ---

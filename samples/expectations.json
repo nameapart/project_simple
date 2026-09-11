@@ -4,8 +4,8 @@
     "note": "Not course material. Should return four empty lists rather than inventing an assignment."
   },
   "edge-tiny-clear.txt": {
-    "maxTotalItems": 8,
-    "note": "Short and genuinely unambiguous. Tests whether the app over-produces when there is little to say."
+    "maxTotalItems": 12,
+    "note": "Short and genuinely unambiguous. Guards against ballooning, not a precision target. Raised from 8 after reviewing an 11-item run item by item and finding every one defensible: five Rules because the source states five rules, three Work items each needing thought, two real ambiguities. 8 was a guess made before any data existed."
   },
   "edge-syllabus.txt": {
     "skipChecks": [

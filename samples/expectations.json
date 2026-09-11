@@ -1,0 +1,14 @@
+{
+  "edge-garbage.txt": {
+    "expectAllEmpty": true,
+    "note": "Not course material. Should return four empty lists rather than inventing an assignment."
+  },
+  "edge-tiny-clear.txt": {
+    "maxTotalItems": 8,
+    "note": "Short and genuinely unambiguous. Tests whether the app over-produces when there is little to say."
+  },
+  "edge-syllabus.txt": {
+    "skipChecks": ["empty-group", "dropped-dates"],
+    "note": "A syllabus is not an assignment - there is no work to do. Open design question: handle it, or decline it? Checks relaxed until we decide."
+  }
+}

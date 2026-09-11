@@ -38,8 +38,9 @@ const results = await Promise.all(files.map(async (file) => {
 }));
 
 const pad = (s, n) => String(s).padEnd(n);
-console.log(pad("sample", 34) + pad("work", 6) + pad("leg", 5) + pad("rules", 7) + pad("uncl", 6) + pad("out tok", 9) + "cost");
-console.log("-".repeat(76));
+console.log("(chars = visible output. out tok includes invisible thinking tokens.)\n");
+console.log(pad("sample", 34) + pad("work", 6) + pad("leg", 5) + pad("rules", 7) + pad("uncl", 6) + pad("chars", 8) + pad("out tok", 9) + "cost");
+console.log("-".repeat(84));
 
 let total = 0;
 for (const r of results) {
@@ -49,11 +50,11 @@ for (const r of results) {
     pad(r.file.replace(".txt", ""), 34) +
     pad(r.out.work.length, 6) + pad(r.out.legwork.length, 5) +
     pad(r.out.rules.length, 7) + pad(r.out.unclear.length, 6) +
-    pad(r.usage.output_tokens, 9) + "$" + cost.toFixed(4)
+    pad([...r.out.work, ...r.out.legwork, ...r.out.rules, ...r.out.unclear].join(" ").length, 8) + pad(r.usage.output_tokens, 9) + "$" + cost.toFixed(4)
   );
 }
 console.log("-".repeat(76));
-console.log(pad("total", 67) + "$" + total.toFixed(4));
+console.log(pad("total", 75) + "$" + total.toFixed(4));
 
 fs.mkdirSync("runs", { recursive: true });
 const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);

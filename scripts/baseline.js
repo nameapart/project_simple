@@ -13,9 +13,37 @@
 
 import fs from "fs";
 import { parseRun, latestRun } from "./parse-run.js";
+import { similarity } from "./checks.js";
+
+// The model never writes the same sentence twice, so a literal diff marks
+// everything changed on every run. Pair each item with its closest match in
+// the baseline: a close match is the same item reworded, and only items with
+// no match at all are genuinely new or gone.
+const SAME = 0.6;
+
+function pairUp(before, after) {
+  const unmatched = [...before];
+  const added = [], reworded = [];
+  for (const item of after) {
+    let best = -1, bestScore = 0;
+    for (let i = 0; i < unmatched.length; i++) {
+      const score = item === unmatched[i] ? 1 : similarity(item, unmatched[i]);
+      if (score > bestScore) { bestScore = score; best = i; }
+    }
+    if (bestScore >= SAME) {
+      if (unmatched[best] !== item) reworded.push([unmatched[best], item]);
+      unmatched.splice(best, 1);
+    } else {
+      added.push(item);
+    }
+  }
+  return { added, removed: unmatched, reworded };
+}
 
 const BASELINE = "runs/baseline.md";
-const [cmd, arg] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const verbose = args.includes("--verbose");
+const [cmd, arg] = args.filter(a => a !== "--verbose");
 
 if (cmd === "bless") {
   const src = arg || latestRun();
@@ -52,17 +80,21 @@ for (const file of Object.keys(after)) {
     continue;
   }
   const deltas = [];
+  let rewordCount = 0;
   for (const [key, label] of GROUPS) {
-    const b = new Set(before[file][key]);
-    const a = new Set(after[file][key]);
-    const removed = [...b].filter(x => !a.has(x));
-    const added = [...a].filter(x => !b.has(x));
+    const { added, removed, reworded } = pairUp(before[file][key], after[file][key]);
+    rewordCount += reworded.length;
     if (removed.length || added.length) deltas.push({ label, removed, added });
   }
-  if (!deltas.length) { unchanged++; continue; }
+
+  if (!deltas.length) {
+    unchanged++;
+    if (rewordCount && verbose) console.log(`same      ${file}  (${rewordCount} reworded)`);
+    continue;
+  }
 
   changed++;
-  console.log(`CHANGED   ${file}`);
+  console.log(`CHANGED   ${file}${rewordCount ? `  (+${rewordCount} reworded)` : ""}`);
   for (const d of deltas) {
     console.log(`  ${d.label}`);
     for (const r of d.removed) console.log(`    - ${r}`);

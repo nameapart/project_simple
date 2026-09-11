@@ -64,6 +64,28 @@ const STOP = new Set(["that","this","with","from","your","their","which","about"
 const significant = (s) =>
   new Set(s.toLowerCase().match(/[a-z]{5,}/g)?.filter(w => !STOP.has(w)) || []);
 
+const normText = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const tokensOf = (s) => new Set(normText(s).split(" ").filter(w => w.length >= 3));
+
+// How alike are two items? Used to tell a reworded item from a new one.
+// Long prose compares on distinctive words; short items like a bare date have
+// none of those, so they fall back to all tokens - otherwise a stray comma
+// makes an item look brand new.
+export function similarity(a, b) {
+  if (normText(a) === normText(b)) return 1;
+
+  const A = significant(a), B = significant(b);
+  const score = (X, Y) => {
+    if (!X.size || !Y.size) return 0;
+    let shared = 0;
+    for (const w of X) if (Y.has(w)) shared++;
+    return shared / Math.min(X.size, Y.size);
+  };
+
+  if (A.size >= 3 && B.size >= 3) return score(A, B);
+  return score(tokensOf(a), tokensOf(b));
+}
+
 const overlap = (a, b) => {
   const A = significant(a), B = significant(b);
   if (A.size === 0 || B.size === 0) return 0;
@@ -137,10 +159,12 @@ export function runChecks(source, out, opts = {}) {
 
   // --- 8. Item ceiling. A bullet taking two breaths is not a checklist item. ---
   for (const { g, i, t } of allItems) {
-    if (g === "unclear" || g === "rules") continue;  // UNCLEAR gets two sentences;
-                                                     // RULES holds rubric tables and option lists
+    if (g === "unclear") continue;                   // two sentences by design
     const words = t.split(/\s+/).length;
-    if (words > 30) add("WARN", "item-too-long", `${g}[${i}]: ${words} words`);
+    // RULES legitimately carries rubric tables and option lists, which run to
+    // about 35 words. A 130-word bullet is unreadable in any group.
+    const ceiling = g === "rules" ? 60 : 30;
+    if (words > ceiling) add("WARN", "item-too-long", `${g}[${i}]: ${words} words (max ${ceiling})`);
   }
 
   // --- 9. A missing deadline is LEGWORK, never UNCLEAR. Recurring violation. ---

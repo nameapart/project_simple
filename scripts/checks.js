@@ -125,7 +125,14 @@ export function runChecks(source, out, opts = {}) {
     if (words > 30) add("WARN", "item-too-long", `${g}[${i}]: ${words} words`);
   }
 
-  // --- 9. Cross-group duplication. Heuristic, so WARN. ---
+  // --- 9. A missing deadline is LEGWORK, never UNCLEAR. Recurring violation. ---
+  for (const [i, t] of out.unclear.entries()) {
+    if (/\b(deadline|due date|due time|closing time|when it closes|no date is|not stated[^.]{0,20}date)\b/i.test(t)) {
+      add("WARN", "deadline-in-unclear", `unclear[${i}]: "${t.slice(0, 60)}..."`);
+    }
+  }
+
+  // --- 10. Cross-group duplication. Heuristic, so WARN. ---
   for (let a = 0; a < allItems.length; a++) {
     for (let b = a + 1; b < allItems.length; b++) {
       if (allItems[a].g === allItems[b].g) continue;
@@ -137,13 +144,17 @@ export function runChecks(source, out, opts = {}) {
     }
   }
 
-  // --- 10. Padding. Restructuring can legitimately land near the source's
+  // --- 11. Padding. Restructuring can legitimately land near the source's
   //         own length; ballooning past it cannot. ---
-  const ratio = allText.length / Math.max(source.length, 1);
-  if (ratio > 2)        add("FAIL", "padded", `${ratio.toFixed(2)}x the source length`);
-  else if (ratio > 1.5) add("WARN", "padded", `${ratio.toFixed(2)}x the source length`);
+  // Below ~600 chars the denominator is too small for the ratio to mean
+  // anything; over-produced covers that case by counting items instead.
+  if (source.length >= 600) {
+    const ratio = allText.length / source.length;
+    if (ratio > 2)        add("FAIL", "padded", `${ratio.toFixed(2)}x the source length`);
+    else if (ratio > 1.5) add("WARN", "padded", `${ratio.toFixed(2)}x the source length`);
+  }
 
-  // --- 11. Over-production on a simple assignment. ---
+  // --- 12. Over-production on a simple assignment. ---
   if (opts.maxTotalItems && allItems.length > opts.maxTotalItems) {
     add("WARN", "over-produced", `${allItems.length} items, expected <= ${opts.maxTotalItems}`);
   }

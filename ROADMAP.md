@@ -63,3 +63,38 @@ Low value, brittle.
 - Rewriting the assignment prompt in plainer language
 - Gamification: if each part is complete, the whole thing is done. That's the
   game.
+
+## Next session: consolidation, not fixes
+
+The prompt went 911 -> 2027 words in one evening. UNCLEAR alone carries eight
+separate pieces of machinery (positive definition, five search triggers, a
+two-item cap, a settled-reading test, lookup precedence, no-repeat, no-invent,
+never-ask-your-professor).
+
+A group needing eight rules to behave means rules are doing work that structure
+should do. The work/legwork/rules split proved the point: good structure DELETED
+rules. The prompt got shorter when it got better.
+
+So the next real move is to read all 2027 words straight through and ask what can
+go because the structure already enforces it. Estimate: a third is scaffolding for
+problems that no longer exist.
+
+Known carry-over items, to fix during that pass rather than by adding rules:
+- UNCLEAR does not restate the no-invention rule, and leaked an invented detail
+  ("replies the instructor praised in earlier units" - the source says no such
+  thing).
+- Three group collapses happened this session, all the same cause: a weak
+  positive definition plus a pile of prohibitions makes silence the cheapest
+  compliant answer. Any group defined mainly by what it excludes will empty.
+  Check every group has a positive definition of what it MUST contain.
+
+## How to evaluate a change
+
+Never judge from one run. Same input gives different output - output_tokens
+includes invisible thinking tokens, so cost varies without the answer changing.
+Use the chars column for verbosity.
+
+  node --env-file=.env.local scripts/test-all.js
+  diff runs/<older>.md runs/<newer>.md
+
+Add every real assignment to samples/ as you collect them.

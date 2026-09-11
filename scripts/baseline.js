@@ -71,8 +71,10 @@ for (const file of Object.keys(after)) {
   console.log();
 }
 
-for (const file of Object.keys(before)) {
-  if (!after[file]) console.log(`GONE      ${file}`);
-}
+// A filtered run (--core, or a substring) legitimately contains fewer samples
+// than the baseline. That is not a deletion, so it collapses to a count.
+const missing = Object.keys(before).filter(f => !after[f]);
 
-console.log(`${changed} changed, ${unchanged} unchanged${appeared ? `, ${appeared} new` : ""}\n`);
+console.log(`${changed} changed, ${unchanged} unchanged${appeared ? `, ${appeared} new` : ""}`);
+if (missing.length) console.log(`${missing.length} baseline sample(s) not in this run - filtered run, not a deletion`);
+console.log();

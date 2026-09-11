@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project Simple</title>
+  <style>
+    /* Deliberately plain. We are not designing yet. */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 720px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.5;
+      color: #1a1a1a;
+    }
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 12px;
+      font: inherit;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      resize: vertical;
+    }
+    button {
+      margin-top: 12px;
+      padding: 10px 20px;
+      font: inherit;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    /* Dashed borders are a reminder that these are scaffolding, not design. */
+    .state {
+      margin-top: 24px;
+      padding: 16px;
+      border: 1px dashed #bbb;
+      border-radius: 6px;
+    }
+    .state.error { border-color: #c00; color: #c00; }
+    h2 { font-size: 17px; margin-bottom: 6px; }
+    ul { margin-top: 0; }
+  </style>
+</head>
+<body>
+
+  <h1>Project Simple</h1>
+  <p>Paste a confusing assignment prompt, rubric, or set of instructions.</p>
+
+  <!-- ========== INPUT (the "idle" state) ========== -->
+  <textarea id="source" placeholder="Paste here..."></textarea>
+  <button id="go">Break it down</button>
+
+  <!-- ========== STATE: LOADING ========== -->
+  <div class="state" id="loading">
+    Formulating...
+  </div>
+
+  <!-- ========== STATE: ERROR ========== -->
+  <div class="state error" id="error">
+    Something went wrong.
+  </div>
+
+  <!-- ========== STATE: RESULTS ========== -->
+  <div class="state" id="results">
+    <section id="work-section">
+      <h2>The Work</h2>
+      <ul id="work"></ul>
+    </section>
+
+    <section id="legwork-section">
+      <h2>The Legwork</h2>
+      <ul id="legwork"></ul>
+    </section>
+
+    <section id="rules-section">
+      <h2>The Rules</h2>
+      <ul id="rules"></ul>
+    </section>
+
+    <section id="unclear-section">
+      <h2>Unclear</h2>
+      <ul id="unclear"></ul>
+    </section>
+  </div>
+
+
+  <script src="app.js"></script>
+</body>
+</html>

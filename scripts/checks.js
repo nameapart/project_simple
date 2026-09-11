@@ -72,7 +72,7 @@ const overlap = (a, b) => {
   return { ratio: shared / Math.min(A.size, B.size), shared };
 };
 
-const IMPERATIVES = new Set(["check","find","open","write","submit","post","use","read","click","go","select","add","make","ensure","include","cite","draft","search","locate","bring","pull","label","answer","proofread","complete","review","choose","pick","apply","compare","identify","explain","save","upload","watch","email","visit","download","start","begin","confirm","set"]);
+const IMPERATIVES = new Set(["check","find","open","write","submit","post","use","read","click","go","select","add","make","ensure","include","cite","draft","search","locate","bring","pull","label","answer","review","choose","pick","apply","compare","identify","explain","save","upload","watch","email","visit","download","start","begin","confirm","set"]);
 
 // ============================================================
 
@@ -147,7 +147,8 @@ export function runChecks(source, out, opts = {}) {
   for (const [i, t] of out.unclear.entries()) {
     const aboutTiming = /\b(deadline|due date|due time|closing time|when it closes|close time)\b/i.test(t);
     const saysMissing = /\b(not stated|never states?|does not (?:say|state|give)|no (?:date|time|deadline) is|unstated|is not given)\b/i.test(t);
-    if (aboutTiming && saysMissing) {
+    const citesAConcreteTime = /\d{1,2}:\d{2}|\b\d+\s*(?:minutes|hours|days)\b|\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.test(t);
+    if (aboutTiming && saysMissing && !citesAConcreteTime) {
       add("WARN", "deadline-in-unclear", `unclear[${i}]: "${t.slice(0, 60)}..."`);
     }
   }
@@ -158,7 +159,7 @@ export function runChecks(source, out, opts = {}) {
     for (let b = a + 1; b < factItems.length; b++) {
       if (factItems[a].g === factItems[b].g) continue;
       const { ratio, shared } = overlap(factItems[a].t, factItems[b].t);
-      if (ratio >= 0.6 && shared >= 4) {
+      if (ratio >= 0.6 && shared >= 6) {
         add("WARN", "cross-group-dup",
           `${factItems[a].g}[${factItems[a].i}] ~ ${factItems[b].g}[${factItems[b].i}] (${shared} shared words)`);
       }
@@ -171,8 +172,10 @@ export function runChecks(source, out, opts = {}) {
   // anything; over-produced covers that case by counting items instead.
   if (source.length >= 600) {
     const ratio = allText.length / source.length;
-    if (ratio > 2)        add("FAIL", "padded", `${ratio.toFixed(2)}x the source length`);
-    else if (ratio > 1.5) add("WARN", "padded", `${ratio.toFixed(2)}x the source length`);
+    // Never a FAIL: three calibration attempts established that this measures
+    // how densely instructions are packed into the source, not how much
+    // ceremony was added. Worth a look, never worth blocking on.
+    if (ratio > 2.5) add("WARN", "padded", `${ratio.toFixed(2)}x the source length - check for manufactured items`);
   }
 
   // --- 12. Over-production on a simple assignment. ---

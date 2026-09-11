@@ -8,7 +8,10 @@
     "note": "Short and genuinely unambiguous. Tests whether the app over-produces when there is little to say."
   },
   "edge-syllabus.txt": {
-    "skipChecks": ["empty-group", "dropped-dates"],
-    "note": "A syllabus is not an assignment - there is no work to do. Open design question: handle it, or decline it? Checks relaxed until we decide."
+    "skipChecks": [
+      "empty-group",
+      "dropped-dates"
+    ],
+    "note": "DECIDED: syllabi are in scope. Empty THE WORK is correct - a syllabus contains no assignment. Dropped-dates is skipped because a syllabus legitimately names dates the output need not reproduce."
   }
 }

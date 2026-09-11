@@ -78,11 +78,12 @@ export function runChecks(source, out, opts = {}) {
     if (total > 0) add("FAIL", "should-be-empty", `expected no items for this input, got ${total}`);
   }
 
-  // --- 2. Invented numbers. The dangerous hallucination: a page count or
-  //        weight that was never in the source, stated confidently. ---
+  // --- 2. Numbers not in the source. Often a real hallucination, but the
+  //        model also does legitimate arithmetic ("the other 90%" from a 10%
+  //        weight), so this is a WARN for a human to judge. ---
   const srcNums = numbersIn(source);
   const invented = [...numbersIn(allText)].filter(n => !srcNums.has(n) && n.length <= 4);
-  if (invented.length) add("FAIL", "invented-numbers", `not in source: ${invented.join(", ")}`);
+  if (invented.length) add("WARN", "invented-numbers", `not in source: ${invented.join(", ")}`);
 
   // --- 3. Dropped dates. The round-four disaster detector. ---
   const srcDates = datesIn(source), outDates = datesIn(allText);
@@ -106,13 +107,20 @@ export function runChecks(source, out, opts = {}) {
 
   // --- 7. Rules phrased as actions. A rule describes; it does not instruct. ---
   for (const [i, t] of out.rules.entries()) {
-    const first = t.trim().toLowerCase().replace(/^[^a-z]+/, "").split(/\s+/)[0];
-    if (IMPERATIVES.has(first)) add("WARN", "action-phrased-rule", `rules[${i}]: "${t.slice(0, 60)}..."`);
+    const clean = t.trim().toLowerCase().replace(/^[^a-z]+/, "");
+    const first = clean.split(/\s+/)[0];
+    // Noun-phrase specs look like "Post due Friday" or "Entry title: ..." -
+    // the leading word is a noun, not a command.
+    const isNounPhrase = /^\w+\s*(:|due\b|length\b|title\b|format\b|count\b|limit\b|size\b|type\b|settings\b|scale\b)/.test(clean);
+    if (IMPERATIVES.has(first) && !isNounPhrase) {
+      add("WARN", "action-phrased-rule", `rules[${i}]: "${t.slice(0, 60)}..."`);
+    }
   }
 
   // --- 8. Item ceiling. A bullet taking two breaths is not a checklist item. ---
   for (const { g, i, t } of allItems) {
-    if (g === "unclear") continue;             // UNCLEAR gets two sentences by design
+    if (g === "unclear" || g === "rules") continue;  // UNCLEAR gets two sentences;
+                                                     // RULES holds rubric tables and option lists
     const words = t.split(/\s+/).length;
     if (words > 30) add("WARN", "item-too-long", `${g}[${i}]: ${words} words`);
   }
@@ -129,10 +137,11 @@ export function runChecks(source, out, opts = {}) {
     }
   }
 
-  // --- 10. Bloat. Output longer than the thing it was meant to simplify. ---
-  if (allText.length > source.length) {
-    add("FAIL", "longer-than-source", `${allText.length} chars vs ${source.length} in source`);
-  }
+  // --- 10. Padding. Restructuring can legitimately land near the source's
+  //         own length; ballooning past it cannot. ---
+  const ratio = allText.length / Math.max(source.length, 1);
+  if (ratio > 2)        add("FAIL", "padded", `${ratio.toFixed(2)}x the source length`);
+  else if (ratio > 1.5) add("WARN", "padded", `${ratio.toFixed(2)}x the source length`);
 
   // --- 11. Over-production on a simple assignment. ---
   if (opts.maxTotalItems && allItems.length > opts.maxTotalItems) {

@@ -56,10 +56,25 @@ Ideas captured from the original brainstorm, deliberately deferred:
 Explicitly rejected: citing which line of the source text an item came from.
 Low value, brittle.
 
+## Syllabus handling - RESOLVED for v1
+
+A syllabus pasted on its own already works with no special handling: THE WORK
+comes back empty (correct - no assignment in it), THE LEGWORK picks up real
+actions (get the text, read the plagiarism policy, find the due dates the
+syllabus omits), THE RULES carries every policy and weight, and UNCLEAR caught
+a genuine ambiguity about whether the late-work window covers exams.
+
+The four-group structure degraded into "syllabus mode" without being told to.
+Only change needed was permission for THE WORK to be empty.
+
 ## Later
 - Multi-document cross-referencing (syllabus + rubric + schedule together).
   The most interesting feature and the most likely to sink the project if
   attempted early. Needs document management and chunking.
+- Syllabus as CONTEXT for an assignment, not just as its own input. The syllabus
+  governs the class: what things are worth, how the schedule runs, how the
+  professor writes and what they seem to care about. Feeding both at once is
+  what makes an assignment breakdown course-aware. This is the real v2.
 - Rewriting the assignment prompt in plainer language
 - Gamification: if each part is complete, the whole thing is done. That's the
   game.

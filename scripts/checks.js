@@ -25,6 +25,22 @@ function normalize(text) {
 
 const numbersIn = (text) => new Set((normalize(text).match(/\d+/g) || []));
 
+// Everything reachable by adding up to three source numbers, or by
+// subtracting one from 100 (percentages). Used to tell arithmetic from
+// invention: "5 points + 5 + 5 = 15 total" is reasoning, not a hallucination.
+function derivable(srcNums) {
+  const base = [...srcNums].map(Number).filter(n => n > 0 && n < 1000).slice(0, 40);
+  const out = new Set(base.map(String));
+  for (const a of base) {
+    out.add(String(100 - a));
+    for (const b of base) {
+      out.add(String(a + b));
+      for (const c of base) out.add(String(a + b + c));
+    }
+  }
+  return out;
+}
+
 const DAYS = "monday|tuesday|wednesday|thursday|friday|saturday|sunday";
 const MONTHS = "january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec";
 
@@ -83,7 +99,8 @@ export function runChecks(source, out, opts = {}) {
   //        weight), so this is a WARN for a human to judge. ---
   const srcNums = numbersIn(source);
   const factText = [...out.work, ...out.legwork, ...out.rules].join(" ");
-  const invented = [...numbersIn(factText)].filter(n => !srcNums.has(n) && n.length <= 4);
+  const reachable = new Set([...srcNums, ...derivable(srcNums)]);
+  const invented = [...numbersIn(factText)].filter(n => !reachable.has(n) && n.length <= 4);
   if (invented.length) add("WARN", "invented-numbers", `not in source: ${invented.join(", ")}`);
 
   // --- 3. Dropped dates. The round-four disaster detector. ---
@@ -128,19 +145,22 @@ export function runChecks(source, out, opts = {}) {
 
   // --- 9. A missing deadline is LEGWORK, never UNCLEAR. Recurring violation. ---
   for (const [i, t] of out.unclear.entries()) {
-    if (/\b(deadline|due date|due time|closing time|when it closes|no date is|not stated[^.]{0,20}date)\b/i.test(t)) {
+    const aboutTiming = /\b(deadline|due date|due time|closing time|when it closes|close time)\b/i.test(t);
+    const saysMissing = /\b(not stated|never states?|does not (?:say|state|give)|no (?:date|time|deadline) is|unstated|is not given)\b/i.test(t);
+    if (aboutTiming && saysMissing) {
       add("WARN", "deadline-in-unclear", `unclear[${i}]: "${t.slice(0, 60)}..."`);
     }
   }
 
   // --- 10. Cross-group duplication. Heuristic, so WARN. ---
-  for (let a = 0; a < allItems.length; a++) {
-    for (let b = a + 1; b < allItems.length; b++) {
-      if (allItems[a].g === allItems[b].g) continue;
-      const { ratio, shared } = overlap(allItems[a].t, allItems[b].t);
+  const factItems = allItems.filter(x => x.g !== "unclear");
+  for (let a = 0; a < factItems.length; a++) {
+    for (let b = a + 1; b < factItems.length; b++) {
+      if (factItems[a].g === factItems[b].g) continue;
+      const { ratio, shared } = overlap(factItems[a].t, factItems[b].t);
       if (ratio >= 0.6 && shared >= 4) {
         add("WARN", "cross-group-dup",
-          `${allItems[a].g}[${allItems[a].i}] ~ ${allItems[b].g}[${allItems[b].i}] (${shared} shared words)`);
+          `${factItems[a].g}[${factItems[a].i}] ~ ${factItems[b].g}[${factItems[b].i}] (${shared} shared words)`);
       }
     }
   }

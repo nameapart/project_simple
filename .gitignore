@@ -14,6 +14,8 @@ node_modules/
 
 # Local prompt-test output
 runs/
+# ...except the blessed baseline, which is a project artifact
+!runs/baseline.md
 
 # RTF originals - the converted .txt files are canonical
 *.rtf

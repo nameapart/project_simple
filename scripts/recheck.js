@@ -9,30 +9,13 @@
 import fs from "fs";
 import path from "path";
 import { runChecks } from "./checks.js";
+import { parseRun, latestRun } from "./parse-run.js";
 
-const LABELS = { "THE WORK": "work", "THE LEGWORK": "legwork", "THE RULES": "rules", "UNCLEAR": "unclear" };
-
-const file = process.argv[2] ||
-  "runs/" + fs.readdirSync("runs").filter(f => f.endsWith(".md")).sort().pop();
+const file = process.argv[2] || latestRun();
 
 const expectations = JSON.parse(fs.readFileSync("samples/expectations.json", "utf8"));
 
-// Walk the saved markdown back into the structure the checks expect.
-const samples = [];
-let current = null, group = null;
-for (const line of fs.readFileSync(file, "utf8").split("\n")) {
-  const sample = line.match(/^## (.+\.txt)$/);
-  const heading = line.match(/^### (.+)$/);
-  if (sample) {
-    current = { file: sample[1], out: { work: [], legwork: [], rules: [], unclear: [] } };
-    samples.push(current);
-    group = null;
-  } else if (heading && current) {
-    group = LABELS[heading[1].trim()] || null;
-  } else if (line.startsWith("- ") && current && group) {
-    current.out[group].push(line.slice(2).trim());
-  }
-}
+const samples = parseRun(file);
 
 console.log(`\nrechecking ${file}  (${samples.length} samples, no API calls)\n`);
 

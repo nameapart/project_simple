@@ -105,6 +105,39 @@ Known carry-over items, to fix during that pass rather than by adding rules:
 
 ## How to evaluate a change
 
+Two different questions, two different tools.
+
+**Did anything break?** The checks answer this. They are mechanical - dropped
+dates, invented numbers, empty groups, items over the ceiling, duplication
+across groups. Cheap, objective, and they caught every regression made on the
+night they were written.
+
+**Is the output any good?** Nothing automated answers this. The checks measure
+twelve mechanical properties; passing all twelve says nothing about whether a
+breakdown is useful. Only reading it tells you that, and 25 outputs is too many
+to read every time.
+
+So read the DELTA. runs/baseline.md is the last run that was actually read and
+accepted:
+
+  node scripts/baseline.js diff     what changed since the baseline
+  node scripts/baseline.js bless    accept the current run as the new baseline
+
+Read what changed, decide whether you like it, then bless. Everything unchanged
+you already read once.
+
+### Which command, and what it costs
+
+  node scripts/recheck.js               free   - changed checks.js only
+  node scripts/baseline.js diff         free   - reading a run you already paid for
+  test-all.js --core         about $0.40       - changed the prompt, routine check
+  test-all.js                about $1.50       - changed the prompt, before/after
+
+Changing checks.js never changes what the model produces, so it never needs a
+paid run. Changing lib/prompt.js always does.
+
+## Old notes on evaluating a change
+
 Never judge from one run. Same input gives different output - output_tokens
 includes invisible thinking tokens, so cost varies without the answer changing.
 Use the chars column for verbosity.

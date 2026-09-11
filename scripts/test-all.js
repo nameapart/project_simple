@@ -38,19 +38,45 @@ const files = fs.readdirSync("samples")
 if (!files.length) { console.error(`no samples match "${filter}"`); process.exit(1); }
 console.log(`\nrunning ${files.length} sample(s) in parallel...\n`);
 
-const results = await Promise.all(files.map(async (file) => {
+// Run at most CONCURRENCY at a time, and never let one failure take the run
+// down with it - a sample that errors is reported and the rest still land.
+const CONCURRENCY = 5;
+
+async function mapWithLimit(items, limit, fn) {
+  const out = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (true) {
+      const i = next++;
+      if (i >= items.length) return;
+      out[i] = await fn(items[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
+let done = 0;
+const results = await mapWithLimit(files, CONCURRENCY, async (file) => {
   const source = fs.readFileSync(path.join("samples", file), "utf8");
-  const res = await client.messages.parse({
-    model: "claude-opus-5",
-    max_tokens: 16000,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: source }],
-    output_config: { format: zodOutputFormat(Schema) }
-  });
-  const out = res.parsed_output;
-  const issues = runChecks(source, out, expectations[file] || {});
-  return { file, source, out, usage: res.usage, issues };
-}));
+  try {
+    const res = await client.messages.parse({
+      model: "claude-opus-5",
+      max_tokens: 16000,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: source }],
+      output_config: { format: zodOutputFormat(Schema) }
+    });
+    const out = res.parsed_output;
+    if (!out) throw new Error("model returned no parsed output");
+    const issues = runChecks(source, out, expectations[file] || {});
+    process.stderr.write(`  [${++done}/${files.length}] ${file}\n`);
+    return { file, source, out, usage: res.usage, issues };
+  } catch (err) {
+    process.stderr.write(`  [${++done}/${files.length}] ${file} - FAILED: ${err.message}\n`);
+    return { file, source, error: err.message };
+  }
+});
 
 const pad = (s, n) => String(s).padEnd(n);
 console.log("(chars = visible output. out tok includes invisible thinking tokens.)\n");
@@ -60,6 +86,11 @@ console.log("-".repeat(92));
 
 let total = 0, anyFail = false;
 for (const r of results) {
+  if (r.error) {
+    anyFail = true;
+    console.log(pad(r.file.replace(".txt", ""), 34) + "request failed: " + r.error.slice(0, 40));
+    continue;
+  }
   const cost = (r.usage.input_tokens / 1e6) * 5 + (r.usage.output_tokens / 1e6) * 25;
   total += cost;
   const fails = r.issues.filter(i => i.level === "FAIL").length;
@@ -80,7 +111,7 @@ console.log(pad("total", 66) + pad("$" + total.toFixed(4), 9) + (anyFail ? "NOT 
 
 // Detail for anything that tripped
 for (const r of results) {
-  if (!r.issues.length) continue;
+  if (r.error || !r.issues.length) continue;
   console.log(`\n${r.file}`);
   for (const i of r.issues) console.log(`  ${pad(i.level, 6)}${pad(i.name, 22)}${i.detail}`);
 }
@@ -92,6 +123,7 @@ const outPath = `runs/${stamp}.md`;
 let md = `# run ${stamp}\n\nprompt: ${SYSTEM_PROMPT.split(/\s+/).length} words\n`;
 for (const r of results) {
   md += `\n## ${r.file}\n`;
+  if (r.error) { md += `\n**request failed:** ${r.error}\n`; continue; }
   if (r.issues.length) {
     md += `\n**checks:** ` + r.issues.map(i => `${i.level} ${i.name} (${i.detail})`).join("; ") + "\n";
   } else {

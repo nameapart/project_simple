@@ -14,3 +14,6 @@ node_modules/
 
 # Local prompt-test output
 runs/
+
+# RTF originals - the converted .txt files are canonical
+*.rtf

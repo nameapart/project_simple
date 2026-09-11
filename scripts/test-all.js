@@ -1,8 +1,9 @@
 // Runs the prompt against every sample, checks the output automatically,
 // and writes runs/<timestamp>.md so prompt versions can be diffed.
 //
-//   node --env-file=.env.local scripts/test-all.js          all samples
-//   node --env-file=.env.local scripts/test-all.js soc      only samples matching "soc"
+//   node --env-file=.env.local scripts/test-all.js           every sample (~$1.20)
+//   node --env-file=.env.local scripts/test-all.js --core    one per input class (~$0.35)
+//   node --env-file=.env.local scripts/test-all.js soc2015   only samples matching "soc2015"
 //
 // Exits non-zero if anything FAILs, so it can gate a commit later.
 
@@ -24,9 +25,13 @@ const Schema = z.object({
 const client = new Anthropic();
 const expectations = JSON.parse(fs.readFileSync("samples/expectations.json", "utf8"));
 
-const filter = process.argv[2];
+const arg = process.argv[2];
+const coreOnly = arg === "--core";
+const filter = coreOnly ? null : arg;
+
 const files = fs.readdirSync("samples")
   .filter(f => f.endsWith(".txt"))
+  .filter(f => !coreOnly || expectations[f]?.suite === "core")
   .filter(f => !filter || f.includes(filter))
   .sort();
 

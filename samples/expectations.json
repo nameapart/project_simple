@@ -1,17 +1,47 @@
 {
   "edge-garbage.txt": {
     "expectAllEmpty": true,
-    "note": "Not course material. Should return four empty lists rather than inventing an assignment."
+    "note": "Not course material. Should return four empty lists rather than inventing an assignment.",
+    "suite": "core",
+    "coverage": "not course material"
   },
   "edge-tiny-clear.txt": {
     "maxTotalItems": 12,
-    "note": "Short and genuinely unambiguous. Guards against ballooning, not a precision target. Raised from 8 after reviewing an 11-item run item by item and finding every one defensible: five Rules because the source states five rules, three Work items each needing thought, two real ambiguities. 8 was a guess made before any data existed."
+    "note": "Short and genuinely unambiguous. Guards against ballooning, not a precision target. Raised from 8 after reviewing an 11-item run item by item and finding every one defensible: five Rules because the source states five rules, three Work items each needing thought, two real ambiguities. 8 was a guess made before any data existed.",
+    "suite": "core",
+    "coverage": "short and unambiguous"
   },
   "edge-syllabus.txt": {
     "skipChecks": [
       "empty-group",
       "dropped-dates"
     ],
-    "note": "DECIDED: syllabi are in scope. Empty THE WORK is correct - a syllabus contains no assignment. Dropped-dates is skipped because a syllabus legitimately names dates the output need not reproduce."
+    "note": "DECIDED: syllabi are in scope. Empty THE WORK is correct - a syllabus contains no assignment. Dropped-dates is skipped because a syllabus legitimately names dates the output need not reproduce.",
+    "suite": "core",
+    "coverage": "policy document, no assignment"
+  },
+  "soc1002-exam1.txt": {
+    "suite": "core",
+    "coverage": "exam - rules only, no work",
+    "skipChecks": [
+      "empty-group"
+    ],
+    "note": "An exam, not an assignment. Almost entirely THE RULES: time limit, open/close window, non-collaborative policy, point value. Empty THE WORK is expected, same as the syllabus."
+  },
+  "socii-paper1.txt": {
+    "suite": "core",
+    "coverage": "multiple prompts, student picks one"
+  },
+  "soc2016-week2-participation-masculinity-mass-shootings.txt": {
+    "suite": "core",
+    "coverage": "very short, conversational"
+  },
+  "soc-blog-illustrated-problem.txt": {
+    "suite": "core",
+    "coverage": "medium, navigation-heavy"
+  },
+  "soc-discussion-3.txt": {
+    "suite": "core",
+    "coverage": "large, rubric-dense"
   }
 }

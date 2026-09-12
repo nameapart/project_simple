@@ -41,5 +41,13 @@
   "soc-discussion-3.txt": {
     "suite": "core",
     "coverage": "large, rubric-dense"
+  },
+  "edge-jargon-no-key.txt": {
+    "suite": "core",
+    "coverage": "impenetrable jargon, no translation given",
+    "note": "The real version of the jargon test: dense theory-speak with no plain-English key. Tests whether accidental difficulty can actually be destroyed, rather than copied from a translation the source already provided. States almost no rules, so a short RULES group is correct here, not a failure."
+  },
+  "edge-jargon-with-key.txt": {
+    "note": "Same assignment WITH the professor's plain-English restatement appended. Kept as the control: the interesting behaviour is that the restatement drops the theory requirement and the app keeps it, then flags that the two versions disagree."
   }
 }

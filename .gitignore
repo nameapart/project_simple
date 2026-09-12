@@ -13,8 +13,10 @@ node_modules/
 .DS_Store
 
 # Local prompt-test output
-runs/
-# ...except the blessed baseline, which is a project artifact
+# Local prompt-test output - but keep the blessed baseline, which is a project
+# artifact. Must be runs/* not runs/ : git does not descend into an excluded
+# directory, so a negation inside one is never evaluated.
+runs/*
 !runs/baseline.md
 
 # RTF originals - the converted .txt files are canonical

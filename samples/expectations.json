@@ -12,21 +12,19 @@
     "coverage": "short and unambiguous"
   },
   "edge-syllabus.txt": {
+    "suite": "core",
+    "coverage": "policy document, no assignment",
+    "allowEmptyWork": true,
     "skipChecks": [
-      "empty-group",
       "dropped-dates"
     ],
-    "note": "DECIDED: syllabi are in scope. Empty THE WORK is correct - a syllabus contains no assignment. Dropped-dates is skipped because a syllabus legitimately names dates the output need not reproduce.",
-    "suite": "core",
-    "coverage": "policy document, no assignment"
+    "note": "DECIDED: syllabi are in scope. Empty THE WORK is correct. dropped-dates is skipped because a syllabus names dates the output need not reproduce - but grading weights are NOT skipped."
   },
   "soc1002-exam1.txt": {
     "suite": "core",
     "coverage": "exam - rules only, no work",
-    "skipChecks": [
-      "empty-group"
-    ],
-    "note": "An exam, not an assignment. Almost entirely THE RULES: time limit, open/close window, non-collaborative policy, point value. Empty THE WORK is expected, same as the syllabus."
+    "allowEmptyWork": true,
+    "note": "An exam, not an assignment: almost entirely THE RULES. Empty THE WORK is expected. Previously this skipped empty-group entirely, which also silenced the RULES half and hid a run where RULES came back completely empty."
   },
   "socii-paper1.txt": {
     "suite": "core",

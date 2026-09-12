@@ -126,6 +126,20 @@ accepted:
 Read what changed, decide whether you like it, then bless. Everything unchanged
 you already read once.
 
+### What each tool can and cannot tell you
+
+The checks measure PRESENCE. The baseline diff shows MOVEMENT. They are not
+interchangeable, and confusing them produces wrong diagnoses.
+
+A consolidation - four separate rules merged into one semicolon-separated item -
+appears in the diff as four removals plus one addition that fuzzy-matches none
+of them. On screen that is identical to deletion. It happened, it was read as
+information loss, and it was wrong: the checks passed because every fact was
+still present.
+
+Read the diff to decide what is worth looking at. Use the checks, or the output
+itself, to decide whether anything is actually wrong.
+
 ### Which command, and what it costs
 
   node scripts/recheck.js               free   - changed checks.js only

@@ -109,7 +109,10 @@ export function runChecks(source, out, opts = {}) {
 
   // --- 1. Group collapse. Three groups emptied on us this session. ---
   if (!opts.expectAllEmpty) {
-    if (out.work.length === 0)  add("FAIL", "empty-group", "THE WORK is empty");
+    // allowEmptyWork is for syllabi and exams, which contain no assignment.
+    // It must NEVER silence the RULES half - a document with no work is
+    // exactly the kind that is ALL rules.
+    if (out.work.length === 0 && !opts.allowEmptyWork) add("FAIL", "empty-group", "THE WORK is empty");
     if (out.rules.length === 0) add("FAIL", "empty-group", "THE RULES is empty");
   } else {
     const total = allItems.length;
@@ -129,6 +132,21 @@ export function runChecks(source, out, opts = {}) {
   const srcDates = datesIn(source), outDates = datesIn(allText);
   const dropped = [...srcDates].filter(d => !outDates.has(d));
   if (dropped.length) add("FAIL", "dropped-dates", `in source, missing from output: ${dropped.join(", ")}`);
+
+  // --- 3b. Dropped grading weights. In the prompt's never-drop list, and
+  //         nothing was checking them: the syllabus silently lost 15%, 45%,
+  //         25% and 10% in a single run. ---
+  const gradingIn = (text) => {
+    const found = new Set();
+    for (const m of text.matchAll(/\b\d+\s*%/g)) found.add(m[0].replace(/\s+/g, ""));
+    for (const m of text.matchAll(/\b(\d+)\s*(?:points?|pts?)\b/gi)) found.add(m[1] + "pt");
+    return found;
+  };
+  const srcGrading = gradingIn(source), outGrading = gradingIn(allText);
+  const lostGrading = [...srcGrading].filter(g => !outGrading.has(g));
+  if (lostGrading.length) {
+    add("FAIL", "dropped-grading", `in source, missing from output: ${lostGrading.join(", ")}`);
+  }
 
   // --- 4. Page numbers. Cannot be known; always invented. ---
   const pages = allText.match(/\b(?:page|pp?\.)\s*\d+/gi) || [];

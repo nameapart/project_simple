@@ -47,6 +47,19 @@ const [cmd, arg] = args.filter(a => a !== "--verbose");
 
 if (cmd === "bless") {
   const src = arg || latestRun();
+
+  // Blessing a filtered run (--core, or a substring) would silently shrink the
+  // baseline, and every sample it omits would come back as NEW on the next
+  // full sweep. Bless full runs.
+  if (fs.existsSync(BASELINE)) {
+    const had = parseRun(BASELINE).length, has = parseRun(src).length;
+    if (has < had && !args.includes("--force")) {
+      console.error(`\nrefusing: ${src} has ${has} samples, the baseline has ${had}.`);
+      console.error(`that looks like a filtered run. bless a full sweep, or pass --force.\n`);
+      process.exit(1);
+    }
+  }
+
   fs.copyFileSync(src, BASELINE);
   console.log(`\nblessed ${src} as the baseline.`);
   console.log(`future runs diff against this until you bless another.\n`);

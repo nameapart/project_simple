@@ -1,0 +1,7 @@
+{
+  "soc-blog--mixed.txt": {
+    "sample": "soc-blog-illustrated-problem.txt",
+    "expected": ["met", "partial", "missing"],
+    "note": "Names image and problem cleanly. Asserts the problem is widespread without ever making the personal-troubles-to-public-issues move. Never mentions an institution. Scored 3/3 on first run."
+  }
+}

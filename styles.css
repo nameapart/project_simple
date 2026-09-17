@@ -489,6 +489,100 @@ h2 {
 .checker-summary { font-weight: 600; font-size: .92rem; }
 .checker-bar .link { padding-inline: 0; color: var(--accent); }
 
+/* ---------- the draft, annotated ---------- */
+
+/* .checker borrows the group head styling, so it needs the same vars. */
+.checker { --hue: 265; --soft: light-dark(oklch(95% .03 265), oklch(26% .03 265));
+           --mid: light-dark(oklch(80% .06 265), oklch(48% .06 265));
+           --deep: light-dark(oklch(48% .1 265), oklch(80% .09 265)); }
+
+.checker { margin-top: 2.6rem; }
+.checker textarea { min-height: 9rem; margin-top: .9rem; }
+
+.checker-hint {
+  margin: .75rem 0 0;
+  font-size: .89rem;
+  color: var(--ink-3);
+  text-wrap: pretty;
+  max-width: 34rem;
+}
+
+.draft-read {
+  margin-top: .9rem;
+  padding: 1.35rem 1.5rem;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  line-height: 1.85;
+  font-size: 1rem;
+  text-wrap: pretty;
+  max-height: 32rem;
+  overflow-y: auto;
+}
+
+/* The evidence: a sentence in your own draft that answered a goal. */
+mark.ev {
+  background: none;
+  color: inherit;
+  padding: .12em .1em;
+  border-radius: 4px;
+  box-decoration-break: clone;
+  cursor: default;
+  transition: background .22s var(--ease), box-shadow .22s var(--ease), opacity .22s;
+}
+/* Which goal this sentence answers, without needing to hover. */
+mark.ev::after {
+  content: attr(data-n);
+  font-size: .62em;
+  font-weight: 700;
+  vertical-align: super;
+  margin-inline-start: .18em;
+  opacity: .65;
+}
+
+mark.ev-met     { background: var(--good-wash);  box-shadow: inset 0 -2px 0 var(--good); }
+mark.ev-partial { background: var(--warn-wash);  box-shadow: inset 0 -2px 0 var(--warn); }
+mark.ev-missing { background: var(--track); }
+
+/* While a link is focused, everything unrelated recedes - that is the
+   whole point: you see which of your sentences is doing which job, and
+   which parts of your draft are doing nothing. */
+.is-focusing mark.ev { opacity: .3; }
+.is-focusing mark.ev.is-linked { opacity: 1; }
+
+mark.ev.is-linked {
+  background: var(--accent-ring);
+  box-shadow: inset 0 -2px 0 var(--accent), 0 0 0 3px var(--accent-ring);
+}
+
+.item.is-linked {
+  border-radius: 11px;
+  box-shadow: 0 0 0 2px var(--accent-ring);
+}
+
+.item[data-verdict] .item-label { cursor: default; }
+
+/* ---------- entrance ---------- */
+
+@keyframes rise {
+  from { opacity: 0; translate: 0 12px; }
+  to   { opacity: 1; translate: 0; }
+}
+.group, .checker {
+  animation: rise .5s var(--ease) both;
+  animation-delay: var(--enter, 0ms);
+}
+
+/* ---------- progress sticks to the top while you work ---------- */
+
+.progress {
+  position: sticky;
+  top: .75rem;
+  z-index: 5;
+  backdrop-filter: blur(10px);
+  background: light-dark(oklch(100% 0 0 / .82), oklch(20.5% .013 265 / .82));
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: .01ms !important;

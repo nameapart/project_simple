@@ -10,6 +10,7 @@
 // ============================================================
 
 import { get, set, itemId, progress, toggleCheck, improvedIds } from "./state.js";
+import { annotate, goalNumbers } from "./annotate.js";
 
 // Only The Work and The Legwork are tasks. Finishing them means the
 // assignment is done, which is the only thing that makes the progress
@@ -42,13 +43,11 @@ const TICK = `<svg class="tick" viewBox="0 0 24 24" aria-hidden="true">
 </svg>`;
 
 let root = null;
-let onCheck = null;       // set by app.js
-let checkerOpen = true;   // UI-only: collapses to a bar after the first check
+let onCheck = null;      // set by app.js
+let editing = true;      // UI-only: textarea vs annotated draft
 
 export function setCheckHandler(fn) { onCheck = fn; }
-
-/** Collapse the draft box to a bar once a check has landed. */
-export function setCheckerOpen(open) { checkerOpen = open; syncAll(); }
+export function setEditing(on) { editing = on; syncAll(); }
 
 // ------------------------------------------------------------
 // Build
@@ -61,18 +60,26 @@ export function mount(container) {
   const state = get();
   if (!state.breakdown) return;
 
-  checkerOpen = !state.verdicts;
+  editing = !state.verdicts;
 
   root.appendChild(buildProgress());
 
+  let n = 0;
   for (const key of ORDER) {
     const items = state.breakdown[key] ?? [];
-    if (items.length === 0) continue;      // an empty heading reads as a bug
-    root.appendChild(buildSection(key, items, state));
+    if (items.length === 0) continue;     // an empty heading reads as a bug
+    const section = buildSection(key, items, state);
+    section.style.setProperty("--enter", `${n++ * 60}ms`);
+    root.appendChild(section);
   }
 
-  if ((state.breakdown.work ?? []).length > 0) root.appendChild(buildChecker(state));
+  if ((state.breakdown.work ?? []).length > 0) {
+    const checker = buildChecker(state);
+    checker.style.setProperty("--enter", `${n * 60}ms`);
+    root.appendChild(checker);
+  }
 
+  wireLinking();
   syncAll();
 }
 
@@ -130,35 +137,42 @@ function buildTask(group, index, text, state) {
   label.append(input, box, el("span", "item-text", text));
   li.appendChild(label);
 
-  // Only THE WORK is evaluated against a draft - legwork errands leave no
-  // trace in writing - so only those rows get a verdict slot.
-  if (group === "work") li.appendChild(el("div", "item-verdict"));
+  // Goal number, so a highlight in the draft can say which goal it answers.
+  if (group === "work") {
+    li.dataset.n = index + 1;
+    li.appendChild(el("div", "item-verdict"));
+  }
 
   return li;
 }
 
 // ------------------------------------------------------------
-// The draft box
+// The draft
 // ------------------------------------------------------------
 
 function buildChecker(state) {
   const box = el("section", "checker");
-
   box.innerHTML = `
-    <div class="checker-bar" data-bar-row hidden>
-      <span class="checker-summary" data-checker-summary></span>
-      <button type="button" class="link" data-expand>Check again</button>
+    <div class="group-head">
+      <span class="dot"></span>
+      <h2>Your draft</h2>
+      <span class="tally" data-checker-tally></span>
     </div>
 
-    <div class="checker-open" data-open-row>
-      <h2 class="checker-title">Check your draft</h2>
-      <p class="checker-hint">Paste what you've written. Every goal above gets marked against it — nothing is rewritten or edited.</p>
+    <div data-edit>
+      <p class="checker-hint">Paste what you've written. Every goal gets marked against it — nothing is rewritten or edited.</p>
       <textarea data-draft placeholder="Paste your draft…"></textarea>
       <div class="actions">
-        <button type="button" id="check" data-check>Check it</button>
-        <button type="button" class="link" data-collapse hidden>Cancel</button>
+        <button type="button" data-check>Check it</button>
+        <button type="button" class="link" data-cancel hidden>Cancel</button>
       </div>
       <div class="checker-status" data-status hidden></div>
+    </div>
+
+    <div data-read hidden>
+      <p class="checker-hint">Highlighted sentences are what satisfied a goal. Hover either side to link them.</p>
+      <div class="draft-read" data-annotated></div>
+      <div class="actions"><button type="button" data-revise>Revise and check again</button></div>
     </div>`;
 
   box.querySelector("[data-draft]").value = state.draft ?? "";
@@ -167,13 +181,12 @@ function buildChecker(state) {
     set({ draft });
     onCheck?.(draft);
   });
-  box.querySelector("[data-expand]").addEventListener("click", () => { checkerOpen = true; syncAll(); });
-  box.querySelector("[data-collapse]").addEventListener("click", () => { checkerOpen = false; syncAll(); });
+  box.querySelector("[data-revise]").addEventListener("click", () => setEditing(true));
+  box.querySelector("[data-cancel]").addEventListener("click", () => setEditing(false));
 
   return box;
 }
 
-/** Called by app.js around the request. */
 export function setCheckBusy(busy, message) {
   if (!root) return;
   const btn = root.querySelector("[data-check]");
@@ -184,6 +197,30 @@ export function setCheckBusy(busy, message) {
     status.textContent = message ?? "";
     status.classList.toggle("is-error", Boolean(message));
   }
+}
+
+// ------------------------------------------------------------
+// Linking: hover a goal to light its sentence, and the reverse
+// ------------------------------------------------------------
+
+function wireLinking() {
+  const focus = (id) => {
+    for (const n of root.querySelectorAll(".is-linked")) n.classList.remove("is-linked");
+    root.classList.toggle("is-focusing", Boolean(id));
+    if (!id) return;
+    for (const n of root.querySelectorAll(`.item[data-id="${id}"], mark[data-goal="${id}"]`)) {
+      n.classList.add("is-linked");
+    }
+  };
+
+  root.addEventListener("pointerover", (e) => {
+    const mark = e.target.closest("mark.ev");
+    if (mark) return focus(mark.dataset.goal);
+    const item = e.target.closest('.item[data-id^="work:"]');
+    focus(item ? item.dataset.id : null);
+  });
+
+  root.addEventListener("pointerleave", () => focus(null));
 }
 
 // ------------------------------------------------------------
@@ -215,22 +252,17 @@ function renderVerdicts(state) {
     const v = state.verdicts?.[li.dataset.id];
 
     li.dataset.verdict = v ? v.status : "";
-
     if (!v) { slot.replaceChildren(); continue; }
 
-    const badge = el("span", `badge badge-${v.status}`, VERDICT_LABEL[v.status]);
-    const reason = el("p", "verdict-reason", v.reason);
-    slot.replaceChildren(badge, reason);
-
-    if (v.evidence) {
-      const quote = el("blockquote", "verdict-evidence", v.evidence);
-      slot.appendChild(quote);
-    }
+    slot.replaceChildren(
+      el("span", `badge badge-${v.status}`, VERDICT_LABEL[v.status]),
+      el("p", "verdict-reason", v.reason)
+    );
 
     // The flip: replay only for goals that actually moved up this check.
     if (improved.has(li.dataset.id)) {
       li.classList.remove("just-improved");
-      void li.offsetWidth;                  // restart the animation
+      void li.offsetWidth;                 // restart the animation
       li.classList.add("just-improved");
     }
   }
@@ -271,25 +303,30 @@ function renderProgress(state) {
 }
 
 function renderChecker(state) {
-  const open = root.querySelector("[data-open-row]");
-  const bar  = root.querySelector("[data-bar-row]");
-  if (!open || !bar) return;
+  const edit = root.querySelector("[data-edit]");
+  const read = root.querySelector("[data-read]");
+  if (!edit || !read) return;
 
   const checked = Boolean(state.verdicts);
 
-  open.hidden = !checkerOpen;
-  bar.hidden = checkerOpen || !checked;
+  edit.hidden = !editing;
+  read.hidden = editing || !checked;
 
-  const cancel = root.querySelector("[data-collapse]");
+  const cancel = root.querySelector("[data-cancel]");
   if (cancel) cancel.hidden = !checked;
 
-  if (checked) {
+  const tally = root.querySelector("[data-checker-tally]");
+
+  if (checked && !editing) {
+    const workCount = (state.breakdown?.work ?? []).length;
+    const { frag, count } = annotate(state.draft ?? "", state.verdicts, goalNumbers(workCount));
+    root.querySelector("[data-annotated]").replaceChildren(frag);
+
     // Denominator is the number of goals, not the number of verdicts that
-    // came back. If the model answered only some of them, "1 of 1 met" is
-    // a lie and "1 of 3" is the useful truth.
-    const goalCount = (state.breakdown?.work ?? []).length;
+    // came back. If the model answered only some, "1 of 1" is a lie.
     const met = Object.values(state.verdicts).filter(v => v.status === "met").length;
-    const summary = root.querySelector("[data-checker-summary]");
-    if (summary) summary.textContent = `Draft checked — ${met} of ${goalCount} goals met`;
+    if (tally) tally.textContent = `${met}/${workCount} goals · ${count} highlighted`;
+  } else if (tally) {
+    tally.textContent = "";
   }
 }

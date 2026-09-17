@@ -5,7 +5,7 @@
 // ============================================================
 
 import { get, setBreakdown, setVerdicts, subscribe, clearAll } from "./state.js";
-import { mount, syncAll, setCheckHandler, setCheckBusy, setCheckerOpen } from "./render.js";
+import { mount, syncAll, setCheckHandler, setCheckBusy, setEditing } from "./render.js";
 
 const sourceEl  = document.getElementById("source");
 const goEl      = document.getElementById("go");
@@ -97,7 +97,7 @@ setCheckHandler(async (draft) => {
 
     setCheckBusy(false, null);
     setVerdicts(data.verdicts);          // fires subscribe -> syncAll -> the flip
-    setCheckerOpen(false);
+    setEditing(false);
 
   } catch (err) {
     console.error(err);

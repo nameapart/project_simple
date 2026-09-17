@@ -27,6 +27,7 @@
 
   --accent:  light-dark(oklch(55% 0.16 275),     oklch(78% 0.13 275));
   --good:    light-dark(oklch(55% 0.13 155),     oklch(76% 0.12 155));
+  --warn:    light-dark(oklch(58% 0.12 75),      oklch(80% 0.11 80));
 
   /* Alpha variants declared outright: relative colour syntax cannot
      derive from a light-dark() token - it resolves too late, silently. */
@@ -34,6 +35,7 @@
   --accent-glow: light-dark(oklch(55% .16 275 / .45), oklch(78% .13 275 / .32));
   --good-edge:   light-dark(oklch(55% .13 155 / .4),  oklch(76% .12 155 / .35));
   --good-wash:   light-dark(oklch(55% .13 155 / .07), oklch(76% .12 155 / .09));
+  --warn-wash:   light-dark(oklch(58% .12 75 / .12),  oklch(80% .11 80 / .13));
   --track:       light-dark(oklch(65% .016 265 / .2), oklch(56% .015 265 / .28));
 
   --radius: 16px;
@@ -363,6 +365,129 @@ h2 {
 .group-unclear .spec { color: var(--ink-2); font-size: .91rem; }
 
 .item-verdict:empty { display: none; }
+
+/* ---------- verdicts ---------- */
+
+.item-verdict {
+  /* line up under the item text, clear of the checkbox column */
+  padding-inline-start: calc(1.3rem + .75rem);
+  padding-block: .1rem .5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: .35rem;
+}
+.item-verdict:empty { display: none; }
+
+.badge {
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  padding: .2em .55em;
+  border-radius: 5px;
+}
+.badge-met     { color: var(--good); background: var(--good-wash); }
+.badge-partial { color: var(--warn); background: var(--warn-wash); }
+.badge-missing { color: var(--ink-3); background: var(--track); }
+
+.verdict-reason {
+  margin: 0;
+  font-size: .89rem;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.verdict-evidence {
+  margin: 0;
+  padding-inline-start: .7rem;
+  border-inline-start: 2px solid var(--mid);
+  font-size: .85rem;
+  color: var(--ink-3);
+  text-wrap: pretty;
+}
+
+/* A goal the check could not find shouldn't read as a failure, just as
+   somewhere you haven't been yet. */
+.item[data-verdict="missing"] .item-text { color: var(--ink-2); }
+
+/* ---------- the flip ---------- */
+
+.progress-flip {
+  margin: .55rem 0 0;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--good);
+}
+
+@keyframes lift {
+  0%   { background: var(--good-wash); transform: translateY(3px); }
+  45%  { background: var(--good-wash); transform: translateY(-2px); }
+  100% { background: transparent;      transform: none; }
+}
+
+.item.just-improved {
+  border-radius: 11px;
+  animation: lift .85s var(--ease);
+}
+
+/* ---------- the draft box ---------- */
+
+.checker {
+  margin-top: 2.6rem;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--line);
+}
+
+.checker-title {
+  font-size: .76rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  font-weight: 700;
+  color: var(--ink-2);
+  margin: 0 0 .3rem;
+}
+
+.checker-hint {
+  margin: 0 0 .85rem;
+  font-size: .89rem;
+  color: var(--ink-3);
+  text-wrap: pretty;
+  max-width: 32rem;
+}
+
+.checker textarea { min-height: 8rem; }
+
+#check {
+  background: var(--accent);
+  color: light-dark(oklch(100% 0 0), oklch(18% .01 265));
+  &:hover:not(:disabled) { transform: translateY(-1.5px); box-shadow: 0 8px 20px -8px var(--accent-glow); }
+}
+
+.link {
+  background: none;
+  border: none;
+  padding: .7rem .4rem;
+  color: var(--ink-3);
+  font-weight: 600;
+  &:hover { color: var(--ink); }
+}
+
+.checker-status {
+  margin-top: .7rem;
+  font-size: .89rem;
+  color: var(--ink-3);
+}
+.checker-status.is-error { color: light-dark(oklch(50% .16 28), oklch(82% .11 28)); }
+
+.checker-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.checker-summary { font-weight: 600; font-size: .92rem; }
+.checker-bar .link { padding-inline: 0; color: var(--accent); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -26,9 +26,13 @@ const EMPTY = {
   breakdown: null,   // { work, legwork, rules, unclear } - arrays of strings
   checks: {},        // itemId -> true
   draft: "",
-  verdicts: null,    // itemId -> { status, reason, evidence }  (step 2)
+  verdicts: null,      // itemId -> { status, reason, evidence }
+  prevVerdicts: null,  // the set before the last check, for the flip
   checkedAt: null
 };
+
+/** missing < partial < met. Used to tell an improvement from a change. */
+export const RANK = { missing: 0, partial: 1, met: 2 };
 
 let state = load();
 const listeners = new Set();
@@ -41,7 +45,9 @@ function load() {
     // A stored shape from an older version is discarded rather than
     // migrated. Cheap now; revisit when losing it would actually hurt.
     if (saved?.version !== VERSION) return { ...EMPTY };
-    return { ...EMPTY, ...saved };
+    // prevVerdicts is forced null rather than trusted from storage: it is
+    // session-only by design, and older saves may still contain one.
+    return { ...EMPTY, ...saved, prevVerdicts: null };
   } catch {
     // Private windows, cleared site data, storage disabled. Not an error.
     return { ...EMPTY };
@@ -50,7 +56,13 @@ function load() {
 
 function save() {
   try {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    // prevVerdicts is deliberately NOT persisted. It exists to answer
+    // "what just improved", which is a thing that happened in this
+    // session - not a fact about the work. Persisting it made the
+    // "2 goals improved" line and the celebration animation replay on
+    // every page load, which cheapens the one moment that matters.
+    const { prevVerdicts, ...durable } = state;
+    localStorage.setItem(KEY, JSON.stringify(durable));
   } catch {
     // Quota or a browser refusing storage. The app keeps working in memory.
   }
@@ -78,6 +90,40 @@ export function toggleCheck(id) {
   const checks = { ...state.checks };
   if (checks[id]) delete checks[id]; else checks[id] = true;
   set({ checks });
+}
+
+/**
+ * Record a check. A met verdict ticks its box, because the point of the
+ * loop is watching goals complete - but a check NEVER unticks something.
+ * The checkbox is what you consider done; the verdict is what the last
+ * check found. When they disagree, the page shows both rather than
+ * overruling you.
+ */
+export function setVerdicts(list) {
+  const verdicts = {};
+  for (const v of list) verdicts[itemId("work", v.index)] = v;
+
+  const checks = { ...state.checks };
+  for (const [id, v] of Object.entries(verdicts)) {
+    if (v.status === "met") checks[id] = true;
+  }
+
+  set({
+    prevVerdicts: state.verdicts,
+    verdicts,
+    checks,
+    checkedAt: Date.now()
+  });
+}
+
+/** Item ids whose verdict improved in the last check. The flip. */
+export function improvedIds() {
+  const { verdicts, prevVerdicts } = state;
+  if (!verdicts || !prevVerdicts) return [];
+  return Object.keys(verdicts).filter(id => {
+    const before = prevVerdicts[id];
+    return before && RANK[verdicts[id].status] > RANK[before.status];
+  });
 }
 
 export function clearAll() {

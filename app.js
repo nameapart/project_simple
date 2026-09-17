@@ -4,8 +4,8 @@
 // Wiring only. State lives in state.js, DOM lives in render.js.
 // ============================================================
 
-import { get, set, setBreakdown, subscribe, clearAll } from "./state.js";
-import { mount, syncAll } from "./render.js";
+import { get, setBreakdown, setVerdicts, subscribe, clearAll } from "./state.js";
+import { mount, syncAll, setCheckHandler, setCheckBusy, setCheckerOpen } from "./render.js";
 
 const sourceEl  = document.getElementById("source");
 const goEl      = document.getElementById("go");
@@ -21,11 +21,8 @@ function showState(name) {
   resetEl.hidden   = name !== "results";
 }
 
-// ------------------------------------------------------------
-// Render on change. A new breakdown rebuilds; anything else -
-// a check toggling - only syncs, so transitions survive.
-// ------------------------------------------------------------
-
+// A new breakdown rebuilds the DOM; anything else - a check toggling, a
+// verdict arriving - only syncs, so transitions survive.
 let mounted = null;
 
 subscribe((state) => {
@@ -38,7 +35,7 @@ subscribe((state) => {
 });
 
 // ------------------------------------------------------------
-// Extract
+// Step one: extract the goals
 // ------------------------------------------------------------
 
 goEl.addEventListener("click", async () => {
@@ -54,8 +51,7 @@ goEl.addEventListener("click", async () => {
     });
     const data = await res.json();
 
-    // The server answered and declined - too short, rate limited, bad input.
-    if (!res.ok) {
+    if (!res.ok) {                       // the server answered and declined
       errorEl.textContent = data.error || "Something went wrong.";
       showState("error");
       return;
@@ -67,14 +63,45 @@ goEl.addEventListener("click", async () => {
     );
     showState("results");
 
-  } catch (err) {
-    // Nothing answered at all. A different failure, so a different message.
+  } catch (err) {                        // nothing answered at all
     console.error(err);
     errorEl.textContent = "Couldn't reach the server. Check your connection and try again.";
     showState("error");
-
   } finally {
     goEl.disabled = false;
+  }
+});
+
+// ------------------------------------------------------------
+// Step two: check a draft against the goals
+// ------------------------------------------------------------
+
+setCheckHandler(async (draft) => {
+  const goals = get().breakdown?.work ?? [];
+  if (goals.length === 0) return;
+
+  setCheckBusy(true, null);
+
+  try {
+    const res = await fetch("/api/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ goals, draft })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setCheckBusy(false, data.error || "Something went wrong.");
+      return;
+    }
+
+    setCheckBusy(false, null);
+    setVerdicts(data.verdicts);          // fires subscribe -> syncAll -> the flip
+    setCheckerOpen(false);
+
+  } catch (err) {
+    console.error(err);
+    setCheckBusy(false, "Couldn't reach the server. Check your connection and try again.");
   }
 });
 

@@ -9,7 +9,7 @@
 // entirely in CSS via :has(:checked) - there is no class to toggle.
 // ============================================================
 
-import { get, itemId, progress, toggleCheck } from "./state.js";
+import { get, set, itemId, progress, toggleCheck, improvedIds } from "./state.js";
 
 // Only The Work and The Legwork are tasks. Finishing them means the
 // assignment is done, which is the only thing that makes the progress
@@ -26,6 +26,8 @@ const LABELS = {
   unclear: "Unclear"
 };
 
+const VERDICT_LABEL = { met: "Met", partial: "Partly there", missing: "Not yet" };
+
 const el = (tag, cls, text) => {
   const n = document.createElement(tag);
   if (cls) n.className = cls;
@@ -40,6 +42,13 @@ const TICK = `<svg class="tick" viewBox="0 0 24 24" aria-hidden="true">
 </svg>`;
 
 let root = null;
+let onCheck = null;       // set by app.js
+let checkerOpen = true;   // UI-only: collapses to a bar after the first check
+
+export function setCheckHandler(fn) { onCheck = fn; }
+
+/** Collapse the draft box to a bar once a check has landed. */
+export function setCheckerOpen(open) { checkerOpen = open; syncAll(); }
 
 // ------------------------------------------------------------
 // Build
@@ -52,6 +61,8 @@ export function mount(container) {
   const state = get();
   if (!state.breakdown) return;
 
+  checkerOpen = !state.verdicts;
+
   root.appendChild(buildProgress());
 
   for (const key of ORDER) {
@@ -59,6 +70,8 @@ export function mount(container) {
     if (items.length === 0) continue;      // an empty heading reads as a bug
     root.appendChild(buildSection(key, items, state));
   }
+
+  if ((state.breakdown.work ?? []).length > 0) root.appendChild(buildChecker(state));
 
   syncAll();
 }
@@ -70,7 +83,8 @@ function buildProgress() {
       <span class="progress-count" data-count></span>
       <span class="progress-done">All done</span>
     </div>
-    <div class="meter"><i data-bar></i></div>`;
+    <div class="meter"><i data-bar></i></div>
+    <p class="progress-flip" data-flip hidden></p>`;
   return box;
 }
 
@@ -116,10 +130,60 @@ function buildTask(group, index, text, state) {
   label.append(input, box, el("span", "item-text", text));
   li.appendChild(label);
 
-  // Slot for the step-2 verdict. Empty now; the row already has a home for it.
-  li.appendChild(el("div", "item-verdict"));
+  // Only THE WORK is evaluated against a draft - legwork errands leave no
+  // trace in writing - so only those rows get a verdict slot.
+  if (group === "work") li.appendChild(el("div", "item-verdict"));
 
   return li;
+}
+
+// ------------------------------------------------------------
+// The draft box
+// ------------------------------------------------------------
+
+function buildChecker(state) {
+  const box = el("section", "checker");
+
+  box.innerHTML = `
+    <div class="checker-bar" data-bar-row hidden>
+      <span class="checker-summary" data-checker-summary></span>
+      <button type="button" class="link" data-expand>Check again</button>
+    </div>
+
+    <div class="checker-open" data-open-row>
+      <h2 class="checker-title">Check your draft</h2>
+      <p class="checker-hint">Paste what you've written. Every goal above gets marked against it — nothing is rewritten or edited.</p>
+      <textarea data-draft placeholder="Paste your draft…"></textarea>
+      <div class="actions">
+        <button type="button" id="check" data-check>Check it</button>
+        <button type="button" class="link" data-collapse hidden>Cancel</button>
+      </div>
+      <div class="checker-status" data-status hidden></div>
+    </div>`;
+
+  box.querySelector("[data-draft]").value = state.draft ?? "";
+  box.querySelector("[data-check]").addEventListener("click", () => {
+    const draft = box.querySelector("[data-draft]").value;
+    set({ draft });
+    onCheck?.(draft);
+  });
+  box.querySelector("[data-expand]").addEventListener("click", () => { checkerOpen = true; syncAll(); });
+  box.querySelector("[data-collapse]").addEventListener("click", () => { checkerOpen = false; syncAll(); });
+
+  return box;
+}
+
+/** Called by app.js around the request. */
+export function setCheckBusy(busy, message) {
+  if (!root) return;
+  const btn = root.querySelector("[data-check]");
+  const status = root.querySelector("[data-status]");
+  if (btn) { btn.disabled = busy; btn.textContent = busy ? "Checking…" : "Check it"; }
+  if (status) {
+    status.hidden = !message;
+    status.textContent = message ?? "";
+    status.classList.toggle("is-error", Boolean(message));
+  }
 }
 
 // ------------------------------------------------------------
@@ -131,13 +195,48 @@ export function syncAll() {
   const state = get();
 
   // Only needed when state changes from somewhere other than a click:
-  // a restore from storage, or step 2 marking items met.
+  // a restore from storage, or a check marking goals met.
   for (const li of root.querySelectorAll(".item[data-id]")) {
     const input = li.querySelector(".item-input");
     const on = Boolean(state.checks[li.dataset.id]);
     if (input.checked !== on) input.checked = on;
   }
 
+  renderVerdicts(state);
+  renderProgress(state);
+  renderChecker(state);
+}
+
+function renderVerdicts(state) {
+  const improved = new Set(improvedIds());
+
+  for (const li of root.querySelectorAll('.item[data-id^="work:"]')) {
+    const slot = li.querySelector(".item-verdict");
+    const v = state.verdicts?.[li.dataset.id];
+
+    li.dataset.verdict = v ? v.status : "";
+
+    if (!v) { slot.replaceChildren(); continue; }
+
+    const badge = el("span", `badge badge-${v.status}`, VERDICT_LABEL[v.status]);
+    const reason = el("p", "verdict-reason", v.reason);
+    slot.replaceChildren(badge, reason);
+
+    if (v.evidence) {
+      const quote = el("blockquote", "verdict-evidence", v.evidence);
+      slot.appendChild(quote);
+    }
+
+    // The flip: replay only for goals that actually moved up this check.
+    if (improved.has(li.dataset.id)) {
+      li.classList.remove("just-improved");
+      void li.offsetWidth;                  // restart the animation
+      li.classList.add("just-improved");
+    }
+  }
+}
+
+function renderProgress(state) {
   let done = 0, total = 0;
 
   for (const key of TASKS) {
@@ -161,4 +260,36 @@ export function syncAll() {
 
   const wrap = root.querySelector(".progress");
   if (wrap) wrap.classList.toggle("is-complete", total > 0 && done === total);
+
+  // "2 goals improved" is the sentence people actually want after a recheck.
+  const flip = root.querySelector("[data-flip]");
+  if (flip) {
+    const n = improvedIds().length;
+    flip.hidden = n === 0;
+    flip.textContent = n ? `${n} goal${n === 1 ? "" : "s"} improved since your last check` : "";
+  }
+}
+
+function renderChecker(state) {
+  const open = root.querySelector("[data-open-row]");
+  const bar  = root.querySelector("[data-bar-row]");
+  if (!open || !bar) return;
+
+  const checked = Boolean(state.verdicts);
+
+  open.hidden = !checkerOpen;
+  bar.hidden = checkerOpen || !checked;
+
+  const cancel = root.querySelector("[data-collapse]");
+  if (cancel) cancel.hidden = !checked;
+
+  if (checked) {
+    // Denominator is the number of goals, not the number of verdicts that
+    // came back. If the model answered only some of them, "1 of 1 met" is
+    // a lie and "1 of 3" is the useful truth.
+    const goalCount = (state.breakdown?.work ?? []).length;
+    const met = Object.values(state.verdicts).filter(v => v.status === "met").length;
+    const summary = root.querySelector("[data-checker-summary]");
+    if (summary) summary.textContent = `Draft checked — ${met} of ${goalCount} goals met`;
+  }
 }

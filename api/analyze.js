@@ -9,8 +9,8 @@
 // ============================================================
 
 import Anthropic from "@anthropic-ai/sdk";
-import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { BreakdownSchema } from "../lib/schema.js";
 import { SYSTEM_PROMPT } from "../lib/prompt.js";
 
 // No key written here. The SDK reads ANTHROPIC_API_KEY from the
@@ -19,12 +19,6 @@ import { SYSTEM_PROMPT } from "../lib/prompt.js";
 const client = new Anthropic();
 
 // The shape we demand back. Not a suggestion - the API enforces it.
-const BreakdownSchema = z.object({
-  work: z.array(z.string()),
-  legwork: z.array(z.string()),
-  rules: z.array(z.string()),
-  unclear: z.array(z.string())
-});
 
 export default async function handler(req, res) {
   // This endpoint only accepts POST. Someone visiting the URL in a
@@ -58,7 +52,12 @@ export default async function handler(req, res) {
     const response = await client.messages.parse({
       model: "claude-opus-5",
       max_tokens: 16000,
-      system: SYSTEM_PROMPT,
+      // The system prompt is 3,362 tokens and byte-identical on every
+      // request, so it is exactly what caching is for. Measured: a cache
+      // read costs ~10% of full price, saving ~$0.015 per extraction.
+      system: [
+        { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }
+      ],
       messages: [{ role: "user", content: text }],
       output_config: { format: zodOutputFormat(BreakdownSchema) }
     });

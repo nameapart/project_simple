@@ -10,17 +10,10 @@
 import fs from "fs";
 import path from "path";
 import Anthropic from "@anthropic-ai/sdk";
-import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { BreakdownSchema } from "../lib/schema.js";
 import { SYSTEM_PROMPT } from "../lib/prompt.js";
 import { runChecks } from "./checks.js";
-
-const Schema = z.object({
-  work: z.array(z.string()),
-  legwork: z.array(z.string()),
-  rules: z.array(z.string()),
-  unclear: z.array(z.string())
-});
 
 const client = new Anthropic();
 const expectations = JSON.parse(fs.readFileSync("samples/expectations.json", "utf8"));
@@ -63,9 +56,11 @@ const results = await mapWithLimit(files, CONCURRENCY, async (file) => {
     const res = await client.messages.parse({
       model: "claude-opus-5",
       max_tokens: 16000,
-      system: SYSTEM_PROMPT,
+      system: [
+        { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }
+      ],
       messages: [{ role: "user", content: source }],
-      output_config: { format: zodOutputFormat(Schema) }
+      output_config: { format: zodOutputFormat(BreakdownSchema) }
     });
     const out = res.parsed_output;
     if (!out) throw new Error("model returned no parsed output");

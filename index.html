@@ -4,168 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Project Simple</title>
-  <style>
-  :root {
-    color-scheme: light;
-    --cream: #fdfbf7;
-    --ink: #403b33;
-    --ink-soft: #7c7568;
-    --card: #ffffff;
-    --line: #ebe4d8;
-    --blue-bg: #e8f1fb; --blue-edge: #bcd7ee; --blue-ink: #4a7ba8;
-    --yell-bg: #fdf5de; --yell-edge: #e9d7a2; --yell-ink: #a2853a;
-    --pink-bg: #fce6ec; --pink-edge: #f3c3cf; --pink-ink: #c4738c;
-    --lila-bg: #ece7f8; --lila-edge: #ccbfe8; --lila-ink: #7f66b5;
-    --radius: 16px;
-  }
-
-  * { box-sizing: border-box; }
-  [hidden] { display: none !important; }
-
-  body {
-    font-family: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont,
-                 "Segoe UI", system-ui, sans-serif;
-    background: var(--cream);
-    background-image:
-      radial-gradient(55rem 28rem at 12% -12%, #e9f1fc 0%, transparent 60%),
-      radial-gradient(45rem 26rem at 92% -4%, #fdeef3 0%, transparent 55%);
-    background-attachment: fixed;
-    color: var(--ink);
-    line-height: 1.6;
-    max-width: 40rem;
-    margin: 0 auto;
-    padding: 3rem 1.25rem 5rem;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  h1 { font-size: 1.9rem; letter-spacing: -0.02em; margin: 0 0 .35rem; }
-  .tagline { color: var(--ink-soft); margin: 0 0 1.75rem; }
-
-  textarea {
-    width: 100%; min-height: 13rem; padding: 1rem 1.1rem;
-    font: inherit; line-height: 1.55; color: var(--ink);
-    background: var(--card);
-    border: 1.5px solid var(--line); border-radius: var(--radius);
-    resize: vertical;
-    box-shadow: 0 1px 2px rgba(64,59,51,.04), 0 8px 24px -16px rgba(64,59,51,.3);
-    transition: border-color .18s, box-shadow .18s;
-  }
-  textarea::placeholder { color: #b8afa2; }
-  textarea:focus {
-    outline: none; border-color: var(--blue-edge);
-    box-shadow: 0 0 0 4px var(--blue-bg);
-  }
-
-  button {
-    margin-top: .9rem; padding: .7rem 1.5rem;
-    font: inherit; font-weight: 600; color: #2f5c85;
-    background: var(--blue-bg);
-    border: 1.5px solid var(--blue-edge); border-radius: 999px;
-    cursor: pointer;
-    transition: transform .12s, box-shadow .18s, background .18s;
-  }
-  button:hover:not(:disabled) {
-    background: #dce9fa; transform: translateY(-1px);
-    box-shadow: 0 6px 16px -8px rgba(74,123,168,.55);
-  }
-  button:active:not(:disabled) { transform: translateY(0); }
-  button:disabled { opacity: .5; cursor: default; }
-
-  .state { margin-top: 1.75rem; }
-
-  /* The one futuristic moment: a slow pastel drift while it thinks. */
-  #loading {
-    padding: 1.1rem 1.25rem; border-radius: var(--radius);
-    color: #55789b; font-weight: 600;
-    border: 1.5px solid var(--blue-edge);
-    background: linear-gradient(100deg,
-      var(--blue-bg), var(--lila-bg), var(--pink-bg), var(--yell-bg), var(--blue-bg));
-    background-size: 300% 100%;
-    animation: drift 5s ease-in-out infinite;
-  }
-  @keyframes drift {
-    0%, 100% { background-position: 0% 50%; }
-    50%      { background-position: 100% 50%; }
-  }
-
-  #error {
-    padding: 1.1rem 1.25rem; border-radius: var(--radius);
-    background: #fdeae7; border: 1.5px solid #f2c3bd; color: #a85f52;
-  }
-
-  section {
-    border: 1.5px solid var(--line); border-radius: var(--radius);
-    padding: 1.15rem 1.35rem 1.3rem; margin-bottom: 1rem;
-    box-shadow: 0 1px 2px rgba(64,59,51,.03), 0 10px 28px -20px rgba(64,59,51,.4);
-  }
-
-  h2 {
-    font-size: .78rem; text-transform: uppercase; letter-spacing: .09em;
-    margin: 0 0 .75rem; display: inline-block;
-    padding: .3rem .75rem; border-radius: 999px;
-    background: rgba(255,255,255,.65);
-  }
-
-  ul { margin: 0; padding-left: 1.15rem; }
-  li { margin: .55rem 0; }
-
-  #work-section    { background: var(--blue-bg); border-color: var(--blue-edge); }
-  #work-section    h2, #work-section    li::marker { color: var(--blue-ink); }
-  #legwork-section { background: var(--yell-bg); border-color: var(--yell-edge); }
-  #legwork-section h2, #legwork-section li::marker { color: var(--yell-ink); }
-  #rules-section   { background: var(--pink-bg); border-color: var(--pink-edge); }
-  #rules-section   h2, #rules-section   li::marker { color: var(--pink-ink); }
-  #unclear-section { background: var(--lila-bg); border-color: var(--lila-edge); }
-  #unclear-section h2, #unclear-section li::marker { color: var(--lila-ink); }
-
-  @media (prefers-reduced-motion: reduce) {
-    * { animation: none !important; transition: none !important; }
-  }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
   <h1>Project Simple</h1>
   <p class="tagline">Paste a confusing assignment prompt, rubric, or set of instructions. Get back what it's actually asking for.</p>
 
-  <!-- ========== INPUT (the "idle" state) ========== -->
-  <textarea id="source" placeholder="Paste here..."></textarea>
-  <button id="go">Break it down</button>
+  <textarea id="source" placeholder="Paste here…"></textarea>
 
-  <!-- ========== STATE: LOADING ========== -->
-  <div class="state" id="loading">
-    Formulating...
+  <div class="actions">
+    <button id="go" type="button">Break it down</button>
+    <button id="reset" type="button" hidden>Start over</button>
   </div>
 
-  <!-- ========== STATE: ERROR ========== -->
-  <div class="state error" id="error">
-    Something went wrong.
-  </div>
+  <div class="state" id="loading" hidden>Formulating…</div>
+  <div class="state" id="error" hidden></div>
+  <div class="state" id="results" hidden></div>
 
-  <!-- ========== STATE: RESULTS ========== -->
-  <div class="state" id="results">
-    <section id="work-section">
-      <h2>The Work</h2>
-      <ul id="work"></ul>
-    </section>
-
-    <section id="legwork-section">
-      <h2>The Legwork</h2>
-      <ul id="legwork"></ul>
-    </section>
-
-    <section id="rules-section">
-      <h2>The Rules</h2>
-      <ul id="rules"></ul>
-    </section>
-
-    <section id="unclear-section">
-      <h2>Unclear</h2>
-      <ul id="unclear"></ul>
-    </section>
-  </div>
-
-
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
